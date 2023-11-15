@@ -98,9 +98,9 @@ def tcp_traceroute(tracerouteoutput,curriter,target, max_hops=5, dst_port=80):
             # Calculate round-trip time
             round_trip_time = (receive_time - send_time) * 1000  # in milliseconds
             print(f"{ttl}\t{addr}\t{round_trip_time:.3f} ms")
-            tracerouteoutput[curriter].append([addr,round_trip_time])      
+            tracerouteoutput[curriter].append([addr,round(round_trip_time,2)])      
         else:
-            tracerouteoutput[curriter].append([addr,round_trip_time])      
+            tracerouteoutput[curriter].append([addr,round(round_trip_time,2)])      
             print(f"{ttl}\t*")
 
         # Check if we reached the destination
