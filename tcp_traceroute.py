@@ -20,9 +20,9 @@ def get_ip_address(domain):
     except socket.gaierror:
         return None
     
-def create_syn_ack_packet(destination_ip, destination_port):
+def create_syn_ack_packet(destination_ip, destination_port,ttl):
     # Create an IP packet with the destination IP address
-    ip_packet = IP(dst=destination_ip)
+    ip_packet = IP(dst=destination_ip,ttl=ttl)
 
     # Create a TCP SYN-ACK packet with the destination port
     tcp_packet = TCP(dport=destination_port, flags="SA", seq=1000, ack=5000)
@@ -33,9 +33,9 @@ def create_syn_ack_packet(destination_ip, destination_port):
     # Display the packet details
     print("TCP SYN-ACK Packet:")
     print(syn_ack_packet.summary())
-
+    print(bytes(syn_ack_packet))
     # Return the packet
-    return syn_ack_packet
+    return bytes(syn_ack_packet)
 
 def send_syn_packet(packet, dest_ip):
     raw_socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_RAW)
@@ -45,11 +45,17 @@ def send_syn_packet(packet, dest_ip):
 
     # Send the packet
     raw_socket.sendto(packet, (dest_ip, 0))
+    data,addr=raw_socket.recvfrom(2048)
+    print(data)
+    print(addr)
+    return raw_socket
 
 
 def traceroute(source_ip, source_port, destination_ip, destination_port):
-    syn_packet = create_syn_ack_packet(destination_ip, destination_port)
-    print(send_syn_packet(syn_packet, destination_ip))
+    ttl=2
+    syn_packet = create_syn_ack_packet(destination_ip, destination_port,ttl)
+    
+    send_syn_packet(syn_packet, destination_ip)
     return []
 
 def main(targetdomain,maxhops,dst_port):
@@ -64,7 +70,7 @@ def main(targetdomain,maxhops,dst_port):
 
 
 if __name__ == "__main__":
-    targetdomain="www.google.com"
+    targetdomain="8.8.8.8"
     maxhops=30
     dst_port=80
     main(targetdomain,maxhops,dst_port)
