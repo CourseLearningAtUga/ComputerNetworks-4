@@ -59,7 +59,7 @@ def receive_icmp():
             icmp_raw_socket.close()
             return addr,recv_time
     except socket.timeout:
-        return None,0
+        return None,time.time()
 
 
 def process_icmp_packet(response):
@@ -79,6 +79,10 @@ def process_icmp_packet(response):
 def tcp_traceroute(tracerouteoutput,curriter,target, max_hops=5, dst_port=80):
     print(f"TCP Traceroute to {target}, {max_hops} hops max, TCP SYN to port {dst_port}")
     tracerouteoutput.append([])
+    target = socket.gethostbyname(target)
+    print("target==================================1")
+    print(target)
+    print("target==================================2")
     for ttl in range(1, max_hops + 1):
         # Send TCP SYN packet
         
@@ -100,6 +104,7 @@ def tcp_traceroute(tracerouteoutput,curriter,target, max_hops=5, dst_port=80):
             print(f"{ttl}\t{addr}\t{round_trip_time:.3f} ms")
             tracerouteoutput[curriter].append([addr,round(round_trip_time,2)])      
         else:
+            round_trip_time = 0
             tracerouteoutput[curriter].append([addr,round(round_trip_time,2)])      
             print(f"{ttl}\t*")
 
