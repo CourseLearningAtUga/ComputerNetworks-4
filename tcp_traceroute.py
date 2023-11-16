@@ -28,11 +28,11 @@ def send_tcp_syn_packet(destination_ip, ttl, dst_port):
     tcp_socket.setsockopt(socket.IPPROTO_IP, socket.IP_TTL, ttl)
 
     packet = IP(dst=destination_ip, ttl=ttl) / TCP(dport=dst_port, flags="S")
-    print("sentpacket+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++start")
-    # Send the packet
-    print(packet)
-    print(bytes(packet))
-    print("sentpacket+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++end")
+    # print("sentpacket+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++start")
+    # # Send the packet
+    # print(packet)
+    # print(bytes(packet))
+    # print("sentpacket+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++end")
     tcp_socket.sendto(bytes(packet), (destination_ip, dst_port))
     
     # Record the time the packet was sent
@@ -52,10 +52,10 @@ def receive_icmp():
             
             recv_time=time.time()
 
-            print("=====================================2")
-            print(packet)
-            print(addr)
-            print("=====================================3")
+            # print("=====================================2")
+            # print(packet)
+            # print(addr)
+            # print("=====================================3")
             icmp_raw_socket.close()
             return addr,recv_time
     except socket.timeout:
@@ -86,11 +86,11 @@ def tcp_traceroute(tracerouteoutput,curriter,target, max_hops=5, dst_port=80):
 
         # Receive TCP SYN-ACK packet
         addr,receive_time = receive_icmp()
-        print("time=============================================start")
-        # print(send_time)
-        # print(receive_time)
-        print(receive_time-send_time)
-        print("time=============================================end")
+        # print("time=============================================start")
+        # # print(send_time)
+        # # print(receive_time)
+        # print(receive_time-send_time)
+        # print("time=============================================end")
         # Close the TCP socket
         tcp_socket.close()
 
