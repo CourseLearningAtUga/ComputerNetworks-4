@@ -4,8 +4,16 @@ import argparse
 import time
 from scapy.all import IP, TCP,ICMP
 import multiprocessing
+import binascii
  
 timeout=1
+def reverse_dns_lookup(ip_address):
+    try:
+        # Perform reverse DNS lookup
+        hostname, _, _ = socket.gethostbyaddr(ip_address)
+        return hostname
+    except socket.herror as e:
+        return f"Unable to perform reverse DNS lookup: {e}"
 
 def parse_icmp_packet(icmp_packet):
     try:
@@ -34,7 +42,7 @@ def parse_icmp_packet(icmp_packet):
 
 
 
-def send_tcp_syn_packet(destination_ip, ttl, dst_port):
+def send_tcp_syn_packet(destination_ip, ttl, dst_port,source_port):
     
     # Create a raw socket
     tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_RAW)
@@ -42,7 +50,7 @@ def send_tcp_syn_packet(destination_ip, ttl, dst_port):
     # tcp_socket.setsockopt(socket.IPPROTO_IP, socket.IP_TTL, ttl)
     tcp_socket.setsockopt(socket.IPPROTO_IP, socket.IP_HDRINCL, 1)
     tcp_socket.settimeout(timeout)
-    packet = IP(dst=destination_ip, ttl=ttl) / TCP(dport=dst_port, flags="S")
+    packet = IP(dst=destination_ip, ttl=ttl) / TCP(dport=dst_port,sport=source_port, flags="S")
     # print("sentpacket+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++start")
     # # Send the packet
     # print(packet)
@@ -86,15 +94,41 @@ def receive_icmp():
     except socket.timeout:
         return None,time.time()
 
-def listenForTcpSynAck(tcp_socket,dst_port,queue):
+def listenForTcpSynAck(tcp_socket,dst_port,source_port,queue):
     try:
         # print(tcp_socket)
         receive_ip_raw_socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
         receive_ip_raw_socket.settimeout(timeout)
-        receive_ip_raw_socket.bind(("0.0.0.0",dst_port))
+        receive_ip_raw_socket.bind(("0.0.0.0",source_port))
         packet_data, addr = receive_ip_raw_socket.recvfrom(1024)
+        scapy_packet = IP(packet_data)
+        tcp_dest_port=-1
+        tcp_source_port=-1
+        # Check if the packet is a TCP packet
+        if TCP in scapy_packet:
+            # Extract source and destination ports from the TCP packet
+            tcp_source_port = scapy_packet[TCP].sport
+            tcp_dest_port = scapy_packet[TCP].dport
+            # Print the source and destination ports
+            print(f"Source Port: {tcp_source_port}")
+            print(f"Destination Port: {tcp_dest_port}")
+            print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++start0")
+            print(source_port,"<=====port i provided")
+            print(addr,tcp_source_port, tcp_dest_port)
+            print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++start0")
+        if tcp_dest_port == source_port:
+            print(f"Captured TCP packet on port {source_port}")
+            print()
+            print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++start")
+            print(addr)
+            print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++start")
+            print(packet_data)
+            print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++end")
+            print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++end")
         # print("==========",addr)
-        queue.put(["1",addr,time.time()])
+            queue.put(["1",addr,time.time()])
+        else:
+            queue.put(["1",None,time.time()])
         receive_ip_raw_socket.close()
     except socket.timeout:
         queue.put(["1",None,time.time()])
@@ -108,6 +142,7 @@ def tcp_traceroute(tracerouteoutput,curriter,target, max_hops=5, dst_port=80):
     tracerouteoutput.append([])
     addr="something went wrong"
     receive_time=0
+    source_port=12345
     icmp_packet=[]
     final_tcp_syn_ackpacket=[]
     target = socket.gethostbyname(target)
@@ -117,8 +152,8 @@ def tcp_traceroute(tracerouteoutput,curriter,target, max_hops=5, dst_port=80):
     for ttl in range(1, max_hops + 1):
         # Send TCP SYN packet
         result_queue = multiprocessing.Queue()
-        tcp_socket, send_time = send_tcp_syn_packet(target, ttl, dst_port)
-        process1 = multiprocessing.Process(target=listenForTcpSynAck, args=(tcp_socket,dst_port,result_queue,))
+        tcp_socket, send_time = send_tcp_syn_packet(target, ttl, dst_port,source_port)
+        process1 = multiprocessing.Process(target=listenForTcpSynAck, args=(tcp_socket,dst_port,source_port,result_queue,))
         process2 = multiprocessing.Process(target=listenForIcmpPacket, args=(result_queue,))
         process1.start()
         process2.start()
