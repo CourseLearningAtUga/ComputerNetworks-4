@@ -2,9 +2,9 @@ import socket
 import struct
 import argparse
 import time
-from scapy.all import IP, TCP,ICMP
+from scapy.all import IP, TCP
 import multiprocessing
-import binascii
+
  
 timeout=1
 def reverse_dns_lookup(ip_address):
@@ -15,27 +15,27 @@ def reverse_dns_lookup(ip_address):
     except socket.herror as e:
         return f"Unable to perform reverse DNS lookup: {e}"
 
-def parse_icmp_packet(icmp_packet):
-    try:
-        # Unpack ICMP header (assuming a basic ICMP header structure)
-        icmp_type, icmp_code, icmp_checksum, icmp_id, icmp_seq = struct.unpack('!BBHHH', icmp_packet[:8])
+# def parse_icmp_packet(icmp_packet):
+#     try:
+#         # Unpack ICMP header (assuming a basic ICMP header structure)
+#         icmp_type, icmp_code, icmp_checksum, icmp_id, icmp_seq = struct.unpack('!BBHHH', icmp_packet[:8])
 
-        # Extract ICMP data
-        icmp_data = icmp_packet[8:]
+#         # Extract ICMP data
+#         icmp_data = icmp_packet[8:]
 
-        # Print parsed information
-        print(f"ICMP Type: {icmp_type}")
-        print(f"ICMP Code: {icmp_code}")
-        print(f"ICMP Checksum: {icmp_checksum}")
-        print(f"ICMP Identifier: {icmp_id}")
-        print(f"ICMP Sequence Number: {icmp_seq}")
+#         # Print parsed information
+#         print(f"ICMP Type: {icmp_type}")
+#         print(f"ICMP Code: {icmp_code}")
+#         print(f"ICMP Checksum: {icmp_checksum}")
+#         print(f"ICMP Identifier: {icmp_id}")
+#         print(f"ICMP Sequence Number: {icmp_seq}")
 
-        # Display ICMP data in hexadecimal format
-        # print(f"ICMP Data (Hex): {binascii.hexlify(icmp_data).decode('utf-8')}")
+#         # Display ICMP data in hexadecimal format
+#         # print(f"ICMP Data (Hex): {binascii.hexlify(icmp_data).decode('utf-8')}")
 
-    except Exception as e:
-        # Handle parsing errors
-        print(f"Error parsing ICMP packet: {str(e)}")
+#     except Exception as e:
+#         # Handle parsing errors
+#         print(f"Error parsing ICMP packet: {str(e)}")
 
 
 
@@ -103,11 +103,11 @@ def listenForTcpSynAck(tcp_socket,dst_port,source_port,queue):
         packet_data, addr = receive_ip_raw_socket.recvfrom(1024)
         scapy_packet = IP(packet_data)
         tcp_dest_port=-1
-        tcp_source_port=-1
+        # tcp_source_port=-1
         # Check if the packet is a TCP packet
         if TCP in scapy_packet:
             # Extract source and destination ports from the TCP packet
-            tcp_source_port = scapy_packet[TCP].sport
+            # tcp_source_port = scapy_packet[TCP].sport
             tcp_dest_port = scapy_packet[TCP].dport
             # Print the source and destination ports
             # print(f"Source Port: {tcp_source_port}")
