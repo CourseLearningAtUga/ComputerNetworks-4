@@ -110,22 +110,22 @@ def listenForTcpSynAck(tcp_socket,dst_port,source_port,queue):
             tcp_source_port = scapy_packet[TCP].sport
             tcp_dest_port = scapy_packet[TCP].dport
             # Print the source and destination ports
-            print(f"Source Port: {tcp_source_port}")
-            print(f"Destination Port: {tcp_dest_port}")
-            print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++start0")
-            print(source_port,"<=====port i provided")
-            print(addr,tcp_source_port, tcp_dest_port)
-            print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++start0")
+            # print(f"Source Port: {tcp_source_port}")
+            # print(f"Destination Port: {tcp_dest_port}")
+            # print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++start0")
+            # print(source_port,"<=====port i provided")
+            # print(addr,tcp_source_port, tcp_dest_port)
+            # print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++start0")
         if tcp_dest_port == source_port:
-            print(f"Captured TCP packet on port {source_port}")
-            print()
-            print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++start")
-            print(addr)
-            print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++start")
-            print(packet_data)
-            print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++end")
-            print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++end")
-        # print("==========",addr)
+            # print(f"Captured TCP packet on port {source_port}")
+            # print()
+            # print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++start")
+            # print(addr)
+            # print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++start")
+            # print(packet_data)
+            # print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++end")
+            # print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++end")
+
             queue.put(["1",addr,time.time()])
         else:
             queue.put(["1",None,time.time()])
@@ -168,12 +168,15 @@ def tcp_traceroute(tracerouteoutput,curriter,target, max_hops=5, dst_port=80):
         else:
             icmp_packet=result_one
             final_tcp_syn_ackpacket=result_two
-
-        if icmp_packet[1]==None:
+        # print("addr testing++++++++++++++++++++++++++++++++++++++++++++st")
+        # print(addr,receive_time,icmp_packet,final_tcp_syn_ackpacket)
+        # print("addr testing========================after")
+        if icmp_packet[1]==None and final_tcp_syn_ackpacket[1]!=None :
             addr,receive_time=final_tcp_syn_ackpacket[1],final_tcp_syn_ackpacket[2]
-        else:
+        elif final_tcp_syn_ackpacket[1]==None and icmp_packet[1]!=None:
             addr,receive_time=icmp_packet[1],icmp_packet[2]
-        
+        else:
+            addr,receive_time="*",0
         # Receive TCP SYN-ACK packet
         # addr,receive_time = receive_icmp()
         
@@ -183,13 +186,17 @@ def tcp_traceroute(tracerouteoutput,curriter,target, max_hops=5, dst_port=80):
         # print(receive_time-send_time)
         # print("time=============================================end")
         # Close the TCP socket
+        
+        
+        # print(addr,receive_time)
+        # print("addr testing++++++++++++++++++++++++++++++++++++++end")
+        # print()
         tcp_socket.close()
-
-        if addr:
+        if addr!="*":
             # Calculate round-trip time
             round_trip_time = (receive_time - send_time) * 1000  # in milliseconds
             # print(f"{ttl}\t{addr}\t{round_trip_time:.3f} ms")
-            tracerouteoutput[curriter].append([addr,round(round_trip_time,2)])      
+            tracerouteoutput[curriter].append([addr[0],round(round_trip_time,2)])      
         else:
             round_trip_time = 0
             tracerouteoutput[curriter].append([addr,round(round_trip_time,2)])      
