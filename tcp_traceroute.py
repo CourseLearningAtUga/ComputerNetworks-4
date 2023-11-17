@@ -5,7 +5,7 @@ import time
 from scapy.all import IP, TCP,ICMP
 import multiprocessing
  
-
+timeout=1
 
 def parse_icmp_packet(icmp_packet):
     try:
@@ -39,8 +39,9 @@ def send_tcp_syn_packet(destination_ip, ttl, dst_port):
     # Create a raw socket
     tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_RAW)
     # Set the TTL in the IP header
-    tcp_socket.setsockopt(socket.IPPROTO_IP, socket.IP_TTL, ttl)
-    tcp_socket.settimeout(5)
+    # tcp_socket.setsockopt(socket.IPPROTO_IP, socket.IP_TTL, ttl)
+    tcp_socket.setsockopt(socket.IPPROTO_IP, socket.IP_HDRINCL, ttl)
+    tcp_socket.settimeout(timeout)
     packet = IP(dst=destination_ip, ttl=ttl) / TCP(dport=dst_port, flags="S")
     # print("sentpacket+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++start")
     # # Send the packet
@@ -48,7 +49,17 @@ def send_tcp_syn_packet(destination_ip, ttl, dst_port):
     # print(bytes(packet))
     # print("sentpacket+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++end")
     tcp_socket.sendto(bytes(packet), (destination_ip, dst_port))
-    
+    # print("++++++++++++++",tcp_socket)
+    # packet_data, addr = tcp_socket.recvfrom(1024)
+    # print("==========",addr,packet_data)
+    # try:
+    #     print("++++++++++++++",tcp_socket)
+    #     packet_data, addr = tcp_socket.recvfrom(1024)
+    #     print("==========",addr,packet_data)
+        
+    # except socket.timeout:
+    #     print("in timeout++++++++++")
+    #     pass
     # Record the time the packet was sent
     send_time = time.time()
 
@@ -61,15 +72,15 @@ def receive_icmp():
         # Receive the TCP SYN-ACK packet
         while True:
             # Receive an ICMP packet
-            icmp_raw_socket.settimeout(5)
+            icmp_raw_socket.settimeout(timeout)
             packet, addr = icmp_raw_socket.recvfrom(1024)
            
             recv_time=time.time()
 
-            print("=====================================2++")
-            print(parse_icmp_packet(packet))
-            # print(addr)
-            print("=====================================3---")
+            # print("=====================================2++")
+            # print(parse_icmp_packet(packet))
+            # # print(addr)
+            # print("=====================================3---")
             icmp_raw_socket.close()
             return addr,recv_time
     except socket.timeout:
@@ -77,8 +88,12 @@ def receive_icmp():
 
 def proc1(tcp_socket,queue):
     try:
-        packet_data, addr = tcp_socket.recvfrom(1024)
+        # print(tcp_socket)
+        receive_ip_raw_socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
+        packet_data, addr = receive_ip_raw_socket.recvfrom(1024)
+        print("==========",addr)
         queue.put(["1",addr,time.time()])
+        receive_ip_raw_socket.close()
     except socket.timeout:
         queue.put(["1",None,time.time()])
  
