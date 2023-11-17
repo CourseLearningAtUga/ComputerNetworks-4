@@ -40,7 +40,7 @@ def send_tcp_syn_packet(destination_ip, ttl, dst_port):
     tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_RAW)
     # Set the TTL in the IP header
     # tcp_socket.setsockopt(socket.IPPROTO_IP, socket.IP_TTL, ttl)
-    tcp_socket.setsockopt(socket.IPPROTO_IP, socket.IP_HDRINCL, ttl)
+    tcp_socket.setsockopt(socket.IPPROTO_IP, socket.IP_HDRINCL, 1)
     tcp_socket.settimeout(timeout)
     packet = IP(dst=destination_ip, ttl=ttl) / TCP(dport=dst_port, flags="S")
     # print("sentpacket+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++start")
@@ -86,7 +86,7 @@ def receive_icmp():
     except socket.timeout:
         return None,time.time()
 
-def proc1(tcp_socket,dst_port,queue):
+def listenForTcpSynAck(tcp_socket,dst_port,queue):
     try:
         # print(tcp_socket)
         receive_ip_raw_socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
@@ -99,13 +99,17 @@ def proc1(tcp_socket,dst_port,queue):
     except socket.timeout:
         queue.put(["1",None,time.time()])
  
-def proc2(queue):
+def listenForIcmpPacket(queue):
     addr,receive_time = receive_icmp()
     queue.put(["2",addr,receive_time])
     
 def tcp_traceroute(tracerouteoutput,curriter,target, max_hops=5, dst_port=80):
     print(f"TCP Traceroute to {target}, {max_hops} hops max, TCP SYN to port {dst_port}")
     tracerouteoutput.append([])
+    addr="something went wrong"
+    receive_time=0
+    icmp_packet=[]
+    final_tcp_syn_ackpacket=[]
     target = socket.gethostbyname(target)
     print("target==================================1")
     print(target)
@@ -114,18 +118,15 @@ def tcp_traceroute(tracerouteoutput,curriter,target, max_hops=5, dst_port=80):
         # Send TCP SYN packet
         result_queue = multiprocessing.Queue()
         tcp_socket, send_time = send_tcp_syn_packet(target, ttl, dst_port)
-        process1 = multiprocessing.Process(target=proc1, args=(tcp_socket,dst_port,result_queue,))
-        process2 = multiprocessing.Process(target=proc2, args=(result_queue,))
+        process1 = multiprocessing.Process(target=listenForTcpSynAck, args=(tcp_socket,dst_port,result_queue,))
+        process2 = multiprocessing.Process(target=listenForIcmpPacket, args=(result_queue,))
         process1.start()
         process2.start()
         process1.join()
         process2.join()
         result_one = result_queue.get()
         result_two = result_queue.get()
-        addr="something went wrong"
-        receive_time=0
-        icmp_packet=[]
-        final_tcp_syn_ackpacket=[]
+        
         if result_two[0]=="2":
             icmp_packet=result_two
             final_tcp_syn_ackpacket=result_one
