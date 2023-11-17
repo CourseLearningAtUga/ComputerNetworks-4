@@ -86,12 +86,14 @@ def receive_icmp():
     except socket.timeout:
         return None,time.time()
 
-def proc1(tcp_socket,queue):
+def proc1(tcp_socket,dst_port,queue):
     try:
         # print(tcp_socket)
         receive_ip_raw_socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
+        receive_ip_raw_socket.settimeout(timeout)
+        receive_ip_raw_socket.bind(("0.0.0.0",dst_port))
         packet_data, addr = receive_ip_raw_socket.recvfrom(1024)
-        print("==========",addr)
+        # print("==========",addr)
         queue.put(["1",addr,time.time()])
         receive_ip_raw_socket.close()
     except socket.timeout:
@@ -112,7 +114,7 @@ def tcp_traceroute(tracerouteoutput,curriter,target, max_hops=5, dst_port=80):
         # Send TCP SYN packet
         result_queue = multiprocessing.Queue()
         tcp_socket, send_time = send_tcp_syn_packet(target, ttl, dst_port)
-        process1 = multiprocessing.Process(target=proc1, args=(tcp_socket,result_queue,))
+        process1 = multiprocessing.Process(target=proc1, args=(tcp_socket,dst_port,result_queue,))
         process2 = multiprocessing.Process(target=proc2, args=(result_queue,))
         process1.start()
         process2.start()
@@ -122,16 +124,20 @@ def tcp_traceroute(tracerouteoutput,curriter,target, max_hops=5, dst_port=80):
         result_two = result_queue.get()
         addr="something went wrong"
         receive_time=0
+        icmp_packet=[]
+        final_tcp_syn_ackpacket=[]
         if result_two[0]=="2":
-            if result_two[1]==None:
-                addr,receive_time = result_one[1],result_one[2]
-            else: 
-                addr,receive_time = result_two[1],result_two[2]
+            icmp_packet=result_two
+            final_tcp_syn_ackpacket=result_one
         else:
-            if result_one[1]==None:
-                addr,receive_time = result_two[1],result_two[2]
-            else: 
-                addr,receive_time = result_one[1],result_one[2]
+            icmp_packet=result_one
+            final_tcp_syn_ackpacket=result_two
+
+        if icmp_packet[1]==None:
+            addr,receive_time=final_tcp_syn_ackpacket[1],final_tcp_syn_ackpacket[2]
+        else:
+            addr,receive_time=icmp_packet[1],icmp_packet[2]
+        
         # Receive TCP SYN-ACK packet
         # addr,receive_time = receive_icmp()
         
@@ -170,3 +176,4 @@ if __name__ == "__main__":
     # print(tracerouteoutput)
     for x in tracerouteoutput[0]:
         print(x)
+    print("en======================")
