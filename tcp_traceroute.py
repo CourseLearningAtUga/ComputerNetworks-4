@@ -23,6 +23,7 @@ def printtraceroute(tracerouteoutput):
             print(y,end=" ")
         print()
     print("+=================================================================================================!")
+    
 def reverse_dns_lookup(ip_address):
     try:
         # Perform reverse DNS lookup
@@ -98,7 +99,7 @@ def receive_icmp(timeout,source_port):
             # Receive an ICMP packet
             icmp_raw_socket.settimeout(timeout)
             packet, addr = icmp_raw_socket.recvfrom(1024)
-            if addr != "127.0.0.1":
+            if addr[0]!= "127.0.0.1":
                 recv_time=time.time()
                 return addr,recv_time
             # print("=====================================2++")
@@ -110,7 +111,7 @@ def receive_icmp(timeout,source_port):
     except socket.timeout:
         return None,time.time()
 
-def listenForTcpSynAck(tcp_socket,dst_port,source_port,timeout,queue):
+def listenForTcpSynAck(source_port,timeout,queue):
     try:
         # print(tcp_socket)
         receive_ip_raw_socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
@@ -157,7 +158,7 @@ def tcp_traceroute(tracerouteoutput,target, max_hops=5, dst_port=80):
     print(f"TCP Traceroute to {target}, {max_hops} hops max, TCP SYN to port {dst_port}")
     # ======================================all initialization variables start============================================================ #
     tracerouteoutput.append([])
-    timeout=3
+    timeout=5
     addr="something went wrong"
     receive_time=0
     source_port=12345
@@ -170,10 +171,9 @@ def tcp_traceroute(tracerouteoutput,target, max_hops=5, dst_port=80):
     print("target to traceroute==================================end")
     for ttl in range(1, max_hops + 1):
         # Send TCP SYN packet
-        
         result_queue = multiprocessing.Queue()
         tcp_socket, send_time = send_tcp_syn_packet(target, ttl, dst_port,source_port,timeout)
-        process1 = multiprocessing.Process(target=listenForTcpSynAck, args=(tcp_socket,dst_port,source_port,timeout,result_queue,))
+        process1 = multiprocessing.Process(target=listenForTcpSynAck, args=(source_port,timeout,result_queue,))
         process2 = multiprocessing.Process(target=listenForIcmpPacket, args=(timeout,source_port,result_queue,))
         process1.start()
         process2.start()
@@ -213,15 +213,18 @@ def tcp_traceroute(tracerouteoutput,target, max_hops=5, dst_port=80):
         # print()
         tcp_socket.close()
         
+        
+        if addr[0]=="127.0.0.1":
+            print("88888888888888888888888888888888888888888888888888888")
+            print(addr[0],round(round_trip_time,2))
+            print(icmp_packet,final_tcp_syn_ackpacket,ttl)
+            print("88888888888888888888888888888888888888888888888888888")
+        
         if addr[0]!="*" and addr[0]!="127.0.0.1":
             # Calculate round-trip time
             round_trip_time = (receive_time - send_time) * 1000  # in milliseconds
             # print(f"{ttl}\t{addr}\t{round_trip_time:.3f} ms")
-            print("88888888888888888888888888888888888888888888888888888")
-            print(addr[0],round(round_trip_time,2))
-            if addr[0]=="127.0.0.1":
-                print(icmp_packet,final_tcp_syn_ackpacket,ttl)
-            print("88888888888888888888888888888888888888888888888888888")
+            
             foundtheipinexisitingresult=False
             for x in tracerouteoutput[ttl]:
                 if x.ipaddress==addr[0]:
