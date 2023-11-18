@@ -158,7 +158,7 @@ def tcp_traceroute(tracerouteoutput,target, max_hops=5, dst_port=80):
     print(f"TCP Traceroute to {target}, {max_hops} hops max, TCP SYN to port {dst_port}")
     # ======================================all initialization variables start============================================================ #
     tracerouteoutput.append([])
-    timeout=5
+    timeout=5 #timeout values seems to be very important since if i keep a low timeout value i am receiving packets from 127.0.0.1
     addr="something went wrong"
     receive_time=0
     source_port=12345
