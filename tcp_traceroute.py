@@ -254,6 +254,6 @@ if __name__ == "__main__":
     tracerouteoutput=[]
     for i in range(args.m):
         tracerouteoutput.append([])
-    for curriter in range(3):
+    for curriter in range(1):
         tcp_traceroute(tracerouteoutput,args.t, max_hops=args.m, dst_port=args.p)
     printtraceroute(tracerouteoutput)
