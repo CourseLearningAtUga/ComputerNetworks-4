@@ -131,11 +131,12 @@ def tcp_traceroute(tracerouteoutput,curriter,target, max_hops, dst_port=80):
     addr="something went wrong"
     receive_time=0
     source_port=12345
+  
     # ======================================all initialization variables end============================================================ #
     print()
     print("traceroute+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++started")
     print(f"TCP Traceroute to {target}, {max_hops} hops max, TCP SYN to port {dst_port}","run number is",curriter)
-    
+    # printtraceroute(tracerouteoutput)
     for ttl in range(1, max_hops + 1):
         # Send TCP SYN packet
         addr,receive_time=["*"],0
@@ -144,15 +145,19 @@ def tcp_traceroute(tracerouteoutput,curriter,target, max_hops, dst_port=80):
         
         addr,receive_time=listen_for_packets(timeout)
         tcp_socket.close()
-        if addr[0]!="*":
+        if addr[0]!="*" and addr[0]!="127.0.0.1":
             # Calculate round-trip time
             round_trip_time = (receive_time - send_time) * 1000  # in milliseconds
             # print(f"{ttl}\t{addr}\t{round_trip_time:.3f} ms")
             
             foundtheipinexisitingresult=False
             prev=len(tracerouteoutput[ttl-1])-1
-            
+            # for x in tracerouteoutput[ttl]:
+            #     print(x.ipaddress,addr[0],end=" ")
+            # print()
+            # print(addr[0])
             if ttl>0 and prev>=0 and tracerouteoutput[ttl-1][prev].ipaddress==addr[0]:
+                
                 tracerouteoutput[ttl-1][prev].addtime(str(round(round_trip_time,3))+"ms")
                 foundtheipinexisitingresult=True
             
@@ -162,7 +167,6 @@ def tcp_traceroute(tracerouteoutput,curriter,target, max_hops, dst_port=80):
             # Check if we reached the destination
             if addr[0] == target:
                 print("traceroute+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ended")
-                
                 return ttl      
         else:
             tracerouteoutput[ttl-1].append(SingleHop("*","0",""))     
