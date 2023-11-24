@@ -18,7 +18,10 @@ class SingleHop:
         elif self.ipaddress=="+":
             return "        +            "
         else:
-            return f"{self.domain} ({self.ipaddress}),  {self.time}"
+            formatted_times = "  ".join([time+" " for time in self.time])
+            return f" {self.domain} ({self.ipaddress})  {formatted_times}"
+        
+
 
 def printtraceroute(tracerouteoutput):
     print("+=================================================================================================!")
