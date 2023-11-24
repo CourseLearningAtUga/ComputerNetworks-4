@@ -165,7 +165,7 @@ def tcp_traceroute(tracerouteoutput,target, max_hops=5, dst_port=80):
     icmp_packet=[]
     final_tcp_syn_ackpacket=[]
     # ======================================all initialization variables end============================================================ #
-    target = socket.gethostbyname(target)
+    
     print("target to traceroute==================================st")
     print(target)
     print("target to traceroute==================================end")
@@ -254,6 +254,7 @@ if __name__ == "__main__":
     tracerouteoutput=[]
     for i in range(args.m):
         tracerouteoutput.append([])
-    for curriter in range(1):
-        tcp_traceroute(tracerouteoutput,args.t, max_hops=args.m, dst_port=args.p)
+    target = socket.gethostbyname(args.t)
+    for curriter in range(3):
+        tcp_traceroute(tracerouteoutput,target, max_hops=args.m, dst_port=args.p)
     printtraceroute(tracerouteoutput)
