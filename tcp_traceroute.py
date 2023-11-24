@@ -1,28 +1,40 @@
 import socket
 import argparse
 import time
-from scapy.all import IP, TCP,Ether, ICMP, UDP
+from scapy.all import IP, TCP,ICMP
+import random
 
-import multiprocessing
 
 class SingleHop:
-    def __init__(self, ipaddress, time):
-        self.domain=""
-        self.ipaddress = ipaddress  
-        self.time=[time]
-
+    def __init__(self, ipaddress,time, domain):
+            self.domain=domain
+            self.ipaddress = ipaddress  
+            self.time=[time]
     def addtime(self,newtime):
         self.time.append(newtime)
     def __str__(self):
-        return f" ({self.ipaddress}),  {self.time}"
+        if self.ipaddress=="*":
+            return " * "
+        elif self.ipaddress=="+":
+            return "        +            "
+        else:
+            formatted_times = "  ".join([time+" " for time in self.time])
+            return f" {self.domain} ({self.ipaddress})  {formatted_times}"
+        
+
 
 def printtraceroute(tracerouteoutput):
-    print("+=================================================================================================!")
+    # print("+=================================================================================================!")
+    number=1
+    # print(len(tracerouteoutput))
     for x in tracerouteoutput:
+        print(number,end=" ")
         for y in x:
             print(y,end=" ")
         print()
-    print("+=================================================================================================!")
+        number+=1
+    print()
+    # print("+=================================================================================================!")
     
 def reverse_dns_lookup(ip_address):
     try:
@@ -30,29 +42,7 @@ def reverse_dns_lookup(ip_address):
         hostname, _, _ = socket.gethostbyaddr(ip_address)
         return hostname
     except socket.herror as e:
-        return f"Unable to perform reverse DNS lookup: {e}"
-
-# def parse_icmp_packet(icmp_packet):
-#     try:
-#         # Unpack ICMP header (assuming a basic ICMP header structure)
-#         icmp_type, icmp_code, icmp_checksum, icmp_id, icmp_seq = struct.unpack('!BBHHH', icmp_packet[:8])
-
-#         # Extract ICMP data
-#         icmp_data = icmp_packet[8:]
-
-#         # Print parsed information
-#         print(f"ICMP Type: {icmp_type}")
-#         print(f"ICMP Code: {icmp_code}")
-#         print(f"ICMP Checksum: {icmp_checksum}")
-#         print(f"ICMP Identifier: {icmp_id}")
-#         print(f"ICMP Sequence Number: {icmp_seq}")
-
-#         # Display ICMP data in hexadecimal format
-#         # print(f"ICMP Data (Hex): {binascii.hexlify(icmp_data).decode('utf-8')}")
-
-#     except Exception as e:
-#         # Handle parsing errors
-#         print(f"Error parsing ICMP packet: {str(e)}")
+        return ip_address
 
 
 
@@ -90,158 +80,102 @@ def send_tcp_syn_packet(destination_ip, ttl, dst_port,source_port,timeout):
 
     return tcp_socket, send_time
 
-def receive_icmp(timeout,source_port):
-    # Set a timeout on the socket
-    icmp_raw_socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP)
-    try:
-        # Receive the TCP SYN-ACK packet
-        while True:
-            # Receive an ICMP packet
-            icmp_raw_socket.settimeout(timeout)
-            packet, addr = icmp_raw_socket.recvfrom(1024)
-            if addr[0]!= "127.0.0.1":
-                recv_time=time.time()
-                return addr,recv_time
-            # print("=====================================2++")
-            # print(parse_icmp_packet(packet))
-            # # print(addr)
-            # print("=====================================3---")
-            icmp_raw_socket.close()
-            return None,time.time()
-    except socket.timeout:
-        return None,time.time()
+def listen_for_packets(timeout,mysource_port):
+    # Create a raw socket for ICMP
+    icmp_socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP)
+    icmp_socket.settimeout(timeout)  # Set a timeout of 1 second
+    icmp_socket.setblocking(0)
+    icmp_socket.bind(('0.0.0.0', 0))
 
-def listenForTcpSynAck(source_port,timeout,queue):
-    try:
-        # print(tcp_socket)
-        receive_ip_raw_socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
-        receive_ip_raw_socket.settimeout(timeout)
-        receive_ip_raw_socket.bind(("0.0.0.0",source_port))
-        packet_data, addr = receive_ip_raw_socket.recvfrom(1024)
-        scapy_packet = IP(packet_data)
-        tcp_dest_port=-1
-        # tcp_source_port=-1
-        # Check if the packet is a TCP packet
-        if TCP in scapy_packet:
-            # Extract source and destination ports from the TCP packet
-            # tcp_source_port = scapy_packet[TCP].sport
-            tcp_dest_port = scapy_packet[TCP].dport
-            # Print the source and destination ports
-            # print(f"Source Port: {tcp_source_port}")
-            # print(f"Destination Port: {tcp_dest_port}")
-            # print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++start0")
-            # print(source_port,"<=====port i provided")
-            # print(addr,tcp_source_port, tcp_dest_port)
-            # print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++start0")
-        if tcp_dest_port == source_port:
-            # print(f"Captured TCP packet on port {source_port}")
-            # print()
-            # print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++start")
-            # print(addr)
-            # print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++start")
-            # print(packet_data)
-            # print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++end")
-            # print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++end")
+    # Create a raw socket for TCP
+    tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
+    tcp_socket.settimeout(timeout)  # Set a timeout of 1 second
+    tcp_socket.setblocking(0)
+    tcp_socket.bind(('0.0.0.0', 0))
+    whilelooptimeout_start=time.time()
+    while True:
+        if time.time()-whilelooptimeout_start>timeout:
+            return "*",0
+        try:
+            data, addr = tcp_socket.recvfrom(1024)
+            packet = IP(data)
+            if TCP in packet and packet[TCP].flags & 0x12 == 0x12:  # Check for SYN and ACK flags
+                tcp_packet = packet[TCP]
+                if tcp_packet.dport == mysource_port:
+                    timestamp = time.time()
+                    # print(f"Received TCP SYN/ACK Packet at {timestamp}: Source Port={tcp_packet.sport}, Dest Port={tcp_packet.dport}, Seq={tcp_packet.seq}, Ack={tcp_packet.ack}, Addr={addr}")
+                    return addr, timestamp
+        except socket.timeout:
+            return "*",0
+        except socket.error:
+            pass
 
-            queue.put(["1",addr,time.time()])
-        else:
-            queue.put(["1",None,time.time()])
-        receive_ip_raw_socket.close()
-    except socket.timeout:
-        queue.put(["1",None,time.time()])
- 
-def listenForIcmpPacket(timeout,source_port,queue):
-    addr,receive_time = receive_icmp(timeout,source_port)
-    queue.put(["2",addr,receive_time])
+        try:
+            data, addr = icmp_socket.recvfrom(1024)
+            packet = IP(data)
+            if ICMP in packet:
+                icmp_packet = packet[ICMP]
+                timestamp = time.time()
+                if icmp_packet.type==11 and icmp_packet.code==0:
+                    # print(f"Received ICMP Packet at {timestamp}: Type={icmp_packet.type}, Code={icmp_packet.code}, Checksum={icmp_packet.chksum}, Addr={addr}")
+                    return addr, timestamp
+        except socket.timeout:
+            return "*",0
+        except socket.error:
+            pass  # Ignore other socket errors
+
+
     
-def tcp_traceroute(tracerouteoutput,target, max_hops=5, dst_port=80):
-    print(f"TCP Traceroute to {target}, {max_hops} hops max, TCP SYN to port {dst_port}")
+def tcp_traceroute(tracerouteoutput,curriter,timeout,target, max_hops, dst_port=80):
+    
     # ======================================all initialization variables start============================================================ #
-    tracerouteoutput.append([])
-    timeout=5 #timeout values seems to be very important since if i keep a low timeout value i am receiving packets from 127.0.0.1
+    
+    timeout=timeout #timeout values seems to be very important since if i keep a low timeout value i am receiving packets from 127.0.0.1
     addr="something went wrong"
     receive_time=0
-    source_port=12345
-    icmp_packet=[]
-    final_tcp_syn_ackpacket=[]
+    source_port=random.randint(2000, 65000)
+    ttl=1
     # ======================================all initialization variables end============================================================ #
-    
-    print("target to traceroute==================================st")
-    print(target)
-    print("target to traceroute==================================end")
+    print()
+    print("traceroute+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++started")
+    print(f"TCP Traceroute to {target}, {max_hops} hops max, TCP SYN to port {dst_port}","run number is",curriter)
+    # printtraceroute(tracerouteoutput)
     for ttl in range(1, max_hops + 1):
         # Send TCP SYN packet
-        result_queue = multiprocessing.Queue()
-        tcp_socket, send_time = send_tcp_syn_packet(target, ttl, dst_port,source_port,timeout)
-        process1 = multiprocessing.Process(target=listenForTcpSynAck, args=(source_port,timeout,result_queue,))
-        process2 = multiprocessing.Process(target=listenForIcmpPacket, args=(timeout,source_port,result_queue,))
-        process1.start()
-        process2.start()
-        process1.join()
-        process2.join()
-        result_one = result_queue.get()
-        result_two = result_queue.get()
-        
-        if result_two[0]=="2":
-            icmp_packet=result_two
-            final_tcp_syn_ackpacket=result_one
-        else:
-            icmp_packet=result_one
-            final_tcp_syn_ackpacket=result_two
-     
-        # print("addr testing++++++++++++++++++++++++++++++++++++++++++++st")
-        # print(addr,receive_time,icmp_packet,final_tcp_syn_ackpacket)
-        # print("addr testing========================after")
-        if icmp_packet[1]==None and final_tcp_syn_ackpacket[1]!=None :
-            addr,receive_time=final_tcp_syn_ackpacket[1],final_tcp_syn_ackpacket[2]
-        elif final_tcp_syn_ackpacket[1]==None and icmp_packet[1]!=None:
-            addr,receive_time=icmp_packet[1],icmp_packet[2]
-        else:
-            addr,receive_time=["*"],0
-        # Receive TCP SYN-ACK packet
-        # addr,receive_time = receive_icmp()
-        # print("time=============================================start")
-        # # print(send_time)
-        # # print(receive_time)
-        # print(receive_time-send_time)
-        # print("time=============================================end")
-        # Close the TCP socket
-        
-        
-        # print(addr,receive_time)
-        # print("addr testing++++++++++++++++++++++++++++++++++++++end")
-        # print()
+        addr,receive_time=["*"],0
+        tcp_socket, send_time = send_tcp_syn_packet(target, ttl, dst_port,source_port,timeout)  
+        addr,receive_time=listen_for_packets(timeout,source_port)
         tcp_socket.close()
-        
-        
-        if addr[0]=="127.0.0.1":
-            print("88888888888888888888888888888888888888888888888888888")
-            print(addr[0],round(round_trip_time,2))
-            print(icmp_packet,final_tcp_syn_ackpacket,ttl)
-            print("88888888888888888888888888888888888888888888888888888")
-        
         if addr[0]!="*" and addr[0]!="127.0.0.1":
             # Calculate round-trip time
             round_trip_time = (receive_time - send_time) * 1000  # in milliseconds
             # print(f"{ttl}\t{addr}\t{round_trip_time:.3f} ms")
             
-            foundtheipinexisitingresult=False
-            for x in tracerouteoutput[ttl]:
-                if x.ipaddress==addr[0]:
-                    x.addtime(round(round_trip_time,2))
-                    foundtheipinexisitingresult=True
-                    break
+            foundthe_ipinexisitingresult=False
+            prev=len(tracerouteoutput[ttl-1])-1
+            # for x in tracerouteoutput[ttl]:
+            #     print(x.ipaddress,addr[0],end=" ")
+            # print()
+            # print(addr[0])
+            if ttl>0 and prev>=0 and tracerouteoutput[ttl-1][prev].ipaddress==addr[0]:
+                tracerouteoutput[ttl-1][prev].addtime(str(round(round_trip_time,3))+"ms")
+                foundthe_ipinexisitingresult=True
             
-            if not foundtheipinexisitingresult:
-                tracerouteoutput[ttl].append(SingleHop(addr[0],round(round_trip_time,2)))
+            if not foundthe_ipinexisitingresult:
+                tracerouteoutput[ttl-1].append(SingleHop(addr[0],str(round(round_trip_time,3))+"ms",reverse_dns_lookup(addr[0])))
             # tracerouteoutput[curriter].append([addr[0],round(round_trip_time,2)])
             # Check if we reached the destination
             if addr[0] == target:
-                break      
+                print("traceroute+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ended")
+                return ttl      
         else:
-            tracerouteoutput[ttl].append(SingleHop("*",0))     
+            tracerouteoutput[ttl-1].append(SingleHop("*","0",""))
+    print("traceroute+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ended")
+    return ttl     
             # print(f"{ttl}\t*")
     # printtraceroute(tracerouteoutput)
+    
+    
 
         
 
@@ -250,11 +184,26 @@ if __name__ == "__main__":
     parser.add_argument("-m", type=int, default=30, help="Max hops to probe (default = 30)")
     parser.add_argument("-p", type=int, default=80, help="TCP destination port (default = 80)")
     parser.add_argument("-t", type=str, required=True, help="Target domain or IP")
+    parser.add_argument("-n", type=int, default=3, help="number of runs (default = 3)")
     args = parser.parse_args()
     tracerouteoutput=[]
+    timeout=1
+    numberofruns=args.n
     for i in range(args.m):
         tracerouteoutput.append([])
-    target = socket.gethostbyname(args.t)
-    for curriter in range(3):
-        tcp_traceroute(tracerouteoutput,target, max_hops=args.m, dst_port=args.p)
+    # print(len(tracerouteoutput))
+    try:
+        target = socket.gethostbyname(args.t)
+        
+    except:
+        print(args.t," No address associated with hostname")
+    for curriter in range(numberofruns):
+        breakiter=tcp_traceroute(tracerouteoutput,curriter+1,timeout,target, args.m, dst_port=args.p)
+        # print(breakiter) 
+        for i in range(breakiter,len(tracerouteoutput)):
+            tracerouteoutput[i].append(SingleHop("+","finished nothing to show",""))
+    print()
+    print()
     printtraceroute(tracerouteoutput)
+    
+    
