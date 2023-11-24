@@ -16,7 +16,7 @@ class SingleHop:
         if self.ipaddress=="*":
             return " * "
         elif self.ipaddress=="+":
-            return " + "
+            return "        +            "
         else:
             return f"{self.domain} ({self.ipaddress}),  {self.time}"
 
@@ -135,26 +135,26 @@ def tcp_traceroute(tracerouteoutput,curriter,target, max_hops, dst_port=80):
     
     for ttl in range(1, max_hops + 1):
         # Send TCP SYN packet
-        tcp_socket, send_time = send_tcp_syn_packet(target, ttl, dst_port,source_port,timeout)  
         addr,receive_time=["*"],0
-        tcp_socket.close()
+        tcp_socket, send_time = send_tcp_syn_packet(target, ttl, dst_port,source_port,timeout)  
+        
+        
         addr,receive_time=listen_for_packets(timeout)
-       
-        if addr[0]!="*" and addr[0]!="127.0.0.1":
+        tcp_socket.close()
+        if addr[0]!="*":
             # Calculate round-trip time
             round_trip_time = (receive_time - send_time) * 1000  # in milliseconds
             # print(f"{ttl}\t{addr}\t{round_trip_time:.3f} ms")
             
             foundtheipinexisitingresult=False
-            prev=len(tracerouteoutput[ttl-1])-1 #subtracting 1 for finding prev and subtracting another 1 since i add 1 to curriter variable in main
+            prev=len(tracerouteoutput[ttl-1])-1
             
             if ttl>0 and prev>=0 and tracerouteoutput[ttl-1][prev].ipaddress==addr[0]:
-                
-                tracerouteoutput[ttl-1][prev].addtime(round(round_trip_time,2))
+                tracerouteoutput[ttl-1][prev].addtime(str(round(round_trip_time,3))+"ms")
                 foundtheipinexisitingresult=True
             
             if not foundtheipinexisitingresult:
-                tracerouteoutput[ttl-1].append(SingleHop(addr[0],round(round_trip_time,2),reverse_dns_lookup(addr[0])))
+                tracerouteoutput[ttl-1].append(SingleHop(addr[0],str(round(round_trip_time,3))+"ms",reverse_dns_lookup(addr[0])))
             # tracerouteoutput[curriter].append([addr[0],round(round_trip_time,2)])
             # Check if we reached the destination
             if addr[0] == target:
@@ -162,7 +162,7 @@ def tcp_traceroute(tracerouteoutput,curriter,target, max_hops, dst_port=80):
                 
                 return ttl      
         else:
-            tracerouteoutput[ttl-1].append(SingleHop("*",0,""))     
+            tracerouteoutput[ttl-1].append(SingleHop("*","0",""))     
             # print(f"{ttl}\t*")
     # printtraceroute(tracerouteoutput)
     print("traceroute+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ended")
