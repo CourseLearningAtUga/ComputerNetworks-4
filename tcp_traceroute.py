@@ -189,6 +189,7 @@ if __name__ == "__main__":
     tracerouteoutput=[]
     timeout=1
     numberofruns=args.n
+    target="example.com"
     for i in range(args.m):
         tracerouteoutput.append([])
     # print(len(tracerouteoutput))
