@@ -18,10 +18,13 @@ class SingleHop:
 
 def printtraceroute(tracerouteoutput):
     print("+=================================================================================================!")
+    number=1
     for x in tracerouteoutput:
+        print(number,end=" ")
         for y in x:
             print(y,end=" ")
         print()
+        number+=1
     print("+=================================================================================================!")
     
 def reverse_dns_lookup(ip_address):
@@ -90,7 +93,7 @@ def listen_for_packets(timeout):
             if TCP in packet and packet[TCP].flags & 0x12 == 0x12:  # Check for SYN and ACK flags
                 tcp_packet = packet[TCP]
                 timestamp = time.time()
-                print(f"Received TCP SYN/ACK Packet at {timestamp}: Source Port={tcp_packet.sport}, Dest Port={tcp_packet.dport}, Seq={tcp_packet.seq}, Ack={tcp_packet.ack}, Addr={addr}")
+                # print(f"Received TCP SYN/ACK Packet at {timestamp}: Source Port={tcp_packet.sport}, Dest Port={tcp_packet.dport}, Seq={tcp_packet.seq}, Ack={tcp_packet.ack}, Addr={addr}")
                 return addr, timestamp
         except socket.timeout:
             return "*",0
@@ -103,7 +106,7 @@ def listen_for_packets(timeout):
             if ICMP in packet:
                 icmp_packet = packet[ICMP]
                 timestamp = time.time()
-                print(f"Received ICMP Packet at {timestamp}: Type={icmp_packet.type}, Code={icmp_packet.code}, Checksum={icmp_packet.chksum}, Addr={addr}")
+                # print(f"Received ICMP Packet at {timestamp}: Type={icmp_packet.type}, Code={icmp_packet.code}, Checksum={icmp_packet.chksum}, Addr={addr}")
                 return addr, timestamp
         except socket.timeout:
             return "*",0
@@ -112,8 +115,8 @@ def listen_for_packets(timeout):
 
 
     
-def tcp_traceroute(tracerouteoutput,target, max_hops, dst_port=80):
-    print(f"TCP Traceroute to {target}, {max_hops} hops max, TCP SYN to port {dst_port}")
+def tcp_traceroute(tracerouteoutput,curriter,target, max_hops, dst_port=80):
+    
     # ======================================all initialization variables start============================================================ #
     tracerouteoutput.append([])
     timeout=1 #timeout values seems to be very important since if i keep a low timeout value i am receiving packets from 127.0.0.1
@@ -121,10 +124,11 @@ def tcp_traceroute(tracerouteoutput,target, max_hops, dst_port=80):
     receive_time=0
     source_port=12345
     # ======================================all initialization variables end============================================================ #
+    print()
+    print("target to traceroute+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++start")
+    print(f"TCP Traceroute to {target}, {max_hops} hops max, TCP SYN to port {dst_port}")
+    print("traceroute to target=",target,"run number is",curriter)
     
-    print("target to traceroute==================================st")
-    print(target)
-    print("target to traceroute==================================end")
     for ttl in range(1, max_hops + 1):
         # Send TCP SYN packet
         tcp_socket, send_time = send_tcp_syn_packet(target, ttl, dst_port,source_port,timeout)  
@@ -138,22 +142,24 @@ def tcp_traceroute(tracerouteoutput,target, max_hops, dst_port=80):
             # print(f"{ttl}\t{addr}\t{round_trip_time:.3f} ms")
             
             foundtheipinexisitingresult=False
-            for x in tracerouteoutput[ttl]:
+            for x in tracerouteoutput[ttl-1]:
                 if x.ipaddress==addr[0]:
                     x.addtime(round(round_trip_time,2))
                     foundtheipinexisitingresult=True
                     break
             
             if not foundtheipinexisitingresult:
-                tracerouteoutput[ttl].append(SingleHop(addr[0],round(round_trip_time,2)))
+                tracerouteoutput[ttl-1].append(SingleHop(addr[0],round(round_trip_time,2)))
             # tracerouteoutput[curriter].append([addr[0],round(round_trip_time,2)])
             # Check if we reached the destination
             if addr[0] == target:
                 break      
         else:
-            tracerouteoutput[ttl].append(SingleHop("*",0))     
+            tracerouteoutput[ttl-1].append(SingleHop("*",0))     
             # print(f"{ttl}\t*")
     # printtraceroute(tracerouteoutput)
+    print("target to traceroute======================================================end")
+    print()
 
         
 
@@ -164,9 +170,10 @@ if __name__ == "__main__":
     parser.add_argument("-t", type=str, required=True, help="Target domain or IP")
     args = parser.parse_args()
     tracerouteoutput=[]
+    numberofruns=3
     for i in range(args.m):
         tracerouteoutput.append([])
     target = socket.gethostbyname(args.t)
-    for curriter in range(3):
-        tcp_traceroute(tracerouteoutput,target, max_hops=args.m, dst_port=args.p)
+    for curriter in range(numberofruns):
+        tcp_traceroute(tracerouteoutput,curriter+1,target, max_hops=args.m, dst_port=args.p)
     printtraceroute(tracerouteoutput)
