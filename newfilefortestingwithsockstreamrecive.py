@@ -19,6 +19,7 @@ class SingleHop:
 def printtraceroute(tracerouteoutput):
     print("+=================================================================================================!")
     number=1
+    print(len(tracerouteoutput))
     for x in tracerouteoutput:
         print(number,end=" ")
         for y in x:
@@ -118,7 +119,7 @@ def listen_for_packets(timeout):
 def tcp_traceroute(tracerouteoutput,curriter,target, max_hops, dst_port=80):
     
     # ======================================all initialization variables start============================================================ #
-    tracerouteoutput.append([])
+    
     timeout=1 #timeout values seems to be very important since if i keep a low timeout value i am receiving packets from 127.0.0.1
     addr="something went wrong"
     receive_time=0
@@ -153,7 +154,7 @@ def tcp_traceroute(tracerouteoutput,curriter,target, max_hops, dst_port=80):
             # tracerouteoutput[curriter].append([addr[0],round(round_trip_time,2)])
             # Check if we reached the destination
             if addr[0] == target:
-                break      
+                return ttl      
         else:
             tracerouteoutput[ttl-1].append(SingleHop("*",0))     
             # print(f"{ttl}\t*")
@@ -173,7 +174,10 @@ if __name__ == "__main__":
     numberofruns=3
     for i in range(args.m):
         tracerouteoutput.append([])
+    print(len(tracerouteoutput))
     target = socket.gethostbyname(args.t)
     for curriter in range(numberofruns):
-        tcp_traceroute(tracerouteoutput,curriter+1,target, max_hops=args.m, dst_port=args.p)
+        breakiter=tcp_traceroute(tracerouteoutput,curriter+1,target, max_hops=args.m, dst_port=args.p)
+        print(breakiter)
+        
     printtraceroute(tracerouteoutput)
