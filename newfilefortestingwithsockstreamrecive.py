@@ -167,6 +167,6 @@ if __name__ == "__main__":
     for i in range(args.m):
         tracerouteoutput.append([])
     target = socket.gethostbyname(args.t)
-    for curriter in range(1):
+    for curriter in range(3):
         tcp_traceroute(tracerouteoutput,target, max_hops=args.m, dst_port=args.p)
     printtraceroute(tracerouteoutput)
