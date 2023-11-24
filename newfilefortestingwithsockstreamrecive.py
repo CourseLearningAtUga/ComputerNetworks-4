@@ -13,7 +13,12 @@ class SingleHop:
     def addtime(self,newtime):
         self.time.append(newtime)
     def __str__(self):
-        return f"{self.domain} ({self.ipaddress}),  {self.time}"
+        if self.ipaddress=="*":
+            return " * "
+        elif self.ipaddress=="+":
+            return " + "
+        else:
+            return f"{self.domain} ({self.ipaddress}),  {self.time}"
 
 def printtraceroute(tracerouteoutput):
     print("+=================================================================================================!")
@@ -125,9 +130,8 @@ def tcp_traceroute(tracerouteoutput,curriter,target, max_hops, dst_port=80):
     source_port=12345
     # ======================================all initialization variables end============================================================ #
     print()
-    print("target to traceroute+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++started")
-    print(f"TCP Traceroute to {target}, {max_hops} hops max, TCP SYN to port {dst_port}")
-    print("traceroute to target=",target,"run number is",curriter)
+    print("traceroute+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++started")
+    print(f"TCP Traceroute to {target}, {max_hops} hops max, TCP SYN to port {dst_port}","run number is",curriter)
     
     for ttl in range(1, max_hops + 1):
         # Send TCP SYN packet
@@ -154,15 +158,15 @@ def tcp_traceroute(tracerouteoutput,curriter,target, max_hops, dst_port=80):
             # tracerouteoutput[curriter].append([addr[0],round(round_trip_time,2)])
             # Check if we reached the destination
             if addr[0] == target:
-                print("target to traceroute+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ended")
-                print()
+                print("traceroute+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ended")
+                
                 return ttl      
         else:
             tracerouteoutput[ttl-1].append(SingleHop("*",0,""))     
             # print(f"{ttl}\t*")
     # printtraceroute(tracerouteoutput)
-    print("target to traceroute+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ended")
-    print()
+    print("traceroute+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ended")
+    
 
         
 
@@ -184,4 +188,6 @@ if __name__ == "__main__":
         # added it to make sure no empty space
         for i in range(breakiter,len(tracerouteoutput)):
             tracerouteoutput[i].append(SingleHop("+","finished nothing to show",""))
+    print()
+    print()
     printtraceroute(tracerouteoutput)
