@@ -6,20 +6,19 @@ from scapy.all import IP, TCP,ICMP
 
 
 class SingleHop:
-    def __init__(self, ipaddress, time):
-        self.domain=""
-        self.ipaddress = ipaddress  
-        self.time=[time]
-
+    def __init__(self, ipaddress,time, domain):
+            self.domain=domain
+            self.ipaddress = ipaddress  
+            self.time=[time]
     def addtime(self,newtime):
         self.time.append(newtime)
     def __str__(self):
-        return f" ({self.ipaddress}),  {self.time}"
+        return f"{self.domain} ({self.ipaddress}),  {self.time}"
 
 def printtraceroute(tracerouteoutput):
     print("+=================================================================================================!")
     number=1
-    print(len(tracerouteoutput))
+    # print(len(tracerouteoutput))
     for x in tracerouteoutput:
         print(number,end=" ")
         for y in x:
@@ -34,7 +33,7 @@ def reverse_dns_lookup(ip_address):
         hostname, _, _ = socket.gethostbyaddr(ip_address)
         return hostname
     except socket.herror as e:
-        return f"Unable to perform reverse DNS lookup: {e}"
+        return ip_address
 
 
 
@@ -150,13 +149,15 @@ def tcp_traceroute(tracerouteoutput,curriter,target, max_hops, dst_port=80):
                     break
             
             if not foundtheipinexisitingresult:
-                tracerouteoutput[ttl-1].append(SingleHop(addr[0],round(round_trip_time,2)))
+                tracerouteoutput[ttl-1].append(SingleHop(addr[0],round(round_trip_time,2),reverse_dns_lookup(addr[0])))
             # tracerouteoutput[curriter].append([addr[0],round(round_trip_time,2)])
             # Check if we reached the destination
             if addr[0] == target:
+                print("target to traceroute======================================================end")
+                print()
                 return ttl      
         else:
-            tracerouteoutput[ttl-1].append(SingleHop("*",0))     
+            tracerouteoutput[ttl-1].append(SingleHop("*",0,""))     
             # print(f"{ttl}\t*")
     # printtraceroute(tracerouteoutput)
     print("target to traceroute======================================================end")
@@ -174,10 +175,12 @@ if __name__ == "__main__":
     numberofruns=3
     for i in range(args.m):
         tracerouteoutput.append([])
-    print(len(tracerouteoutput))
+    # print(len(tracerouteoutput))
     target = socket.gethostbyname(args.t)
     for curriter in range(numberofruns):
         breakiter=tcp_traceroute(tracerouteoutput,curriter+1,target, max_hops=args.m, dst_port=args.p)
-        print(breakiter)
-        
+        # print(breakiter)
+        # added it to make sure no empty space
+        for i in range(breakiter,len(tracerouteoutput)):
+            tracerouteoutput[i].append(SingleHop("+","finished nothing to show",""))
     printtraceroute(tracerouteoutput)
