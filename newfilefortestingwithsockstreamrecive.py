@@ -125,7 +125,7 @@ def tcp_traceroute(tracerouteoutput,curriter,target, max_hops, dst_port=80):
     source_port=12345
     # ======================================all initialization variables end============================================================ #
     print()
-    print("target to traceroute+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++start")
+    print("target to traceroute+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++started")
     print(f"TCP Traceroute to {target}, {max_hops} hops max, TCP SYN to port {dst_port}")
     print("traceroute to target=",target,"run number is",curriter)
     
@@ -142,25 +142,26 @@ def tcp_traceroute(tracerouteoutput,curriter,target, max_hops, dst_port=80):
             # print(f"{ttl}\t{addr}\t{round_trip_time:.3f} ms")
             
             foundtheipinexisitingresult=False
-            for x in tracerouteoutput[ttl-1]:
-                if x.ipaddress==addr[0]:
-                    x.addtime(round(round_trip_time,2))
-                    foundtheipinexisitingresult=True
-                    break
+            prev=len(tracerouteoutput[ttl-1])-1 #subtracting 1 for finding prev and subtracting another 1 since i add 1 to curriter variable in main
+            
+            if ttl>0 and prev>=0 and tracerouteoutput[ttl-1][prev].ipaddress==addr[0]:
+                
+                tracerouteoutput[ttl-1][prev].addtime(round(round_trip_time,2))
+                foundtheipinexisitingresult=True
             
             if not foundtheipinexisitingresult:
                 tracerouteoutput[ttl-1].append(SingleHop(addr[0],round(round_trip_time,2),reverse_dns_lookup(addr[0])))
             # tracerouteoutput[curriter].append([addr[0],round(round_trip_time,2)])
             # Check if we reached the destination
             if addr[0] == target:
-                print("target to traceroute======================================================end")
+                print("target to traceroute+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ended")
                 print()
                 return ttl      
         else:
             tracerouteoutput[ttl-1].append(SingleHop("*",0,""))     
             # print(f"{ttl}\t*")
     # printtraceroute(tracerouteoutput)
-    print("target to traceroute======================================================end")
+    print("target to traceroute+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ended")
     print()
 
         
